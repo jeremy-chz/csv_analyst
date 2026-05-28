@@ -3,6 +3,7 @@ Action Planning - Backend FastAPI
 Générateur de planning de déchargement charrettes
 """
 from fastapi import FastAPI
+from sqlalchemy import text
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
@@ -13,6 +14,15 @@ from routers import personnel, planning, scan, auth, admin
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
+    
+    # Migration : ajouter magasin_id si elle n'existe pas
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("ALTER TABLE personnel ADD COLUMN IF NOT EXISTS magasin_id INTEGER"))
+            conn.commit()
+    except Exception as e:
+        print(f"Migration info: {e}")
+    
     # Créer le compte admin si il n'existe pas
     from sqlalchemy.orm import sessionmaker
     from models.magasin import Magasin
